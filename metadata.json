@@ -1,0 +1,6 @@
+{
+  "name": "Atelier Study — 3D Spatial Sanctuary",
+  "description": "Interactive 3D architectural reading & study sanctuary with free-roam navigation, Day/Evening/Night lighting choreography, and direct 3D chair booking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

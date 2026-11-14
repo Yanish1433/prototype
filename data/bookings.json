@@ -1,0 +1,22 @@
+[
+  {
+    "id": "bk-seed-q5",
+    "referenceCode": "AT-8421",
+    "chairId": "Q5",
+    "chairLabel": "Quiet Desk Q5",
+    "roomName": "Quiet Study Studio",
+    "targetKind": "chair",
+    "plan": "monthly-dedicated",
+    "startDate": "2026-11-13",
+    "startTime": "09:00",
+    "durationUnits": 1,
+    "guestName": "Aarav Shrestha",
+    "guestEmail": "aarav.shrestha@studynepal.np",
+    "preferences": [
+      "Warm Desk Lamp",
+      "Power & USB-C Dock"
+    ],
+    "totalPrice": 10000,
+    "createdAt": "2026-11-13T14:56:16.616Z"
+  }
+]
