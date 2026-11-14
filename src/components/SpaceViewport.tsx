@@ -706,7 +706,7 @@ export const SpaceViewport: React.FC<SpaceViewportProps> = ({
 
       const goal = cameraGoalRef.current;
       if (goal.active) {
-        const k = 4.8;
+        const k = 11.5; // Fast, snappy camera glide (0.35s instead of 1.8s)
         camera.position.x = THREE.MathUtils.damp(camera.position.x, goal.pos.x, k, dt);
         camera.position.y = THREE.MathUtils.damp(camera.position.y, goal.pos.y, k, dt);
         camera.position.z = THREE.MathUtils.damp(camera.position.z, goal.pos.z, k, dt);
@@ -717,9 +717,9 @@ export const SpaceViewport: React.FC<SpaceViewportProps> = ({
         camPitch = THREE.MathUtils.damp(camPitch, goal.pitch, k, dt);
 
         if (
-          camera.position.distanceTo(goal.pos) < 0.015 &&
-          Math.abs(yawDiff) < 0.008 &&
-          Math.abs(goal.pitch - camPitch) < 0.008
+          camera.position.distanceTo(goal.pos) < 0.025 &&
+          Math.abs(yawDiff) < 0.012 &&
+          Math.abs(goal.pitch - camPitch) < 0.012
         ) {
           goal.active = false;
         }
@@ -753,12 +753,12 @@ export const SpaceViewport: React.FC<SpaceViewportProps> = ({
         ch.isHovered = ch.metadata.id === currentHoveredId;
 
         ch.targetSlide = ch.isSelected ? 1.0 : ch.isHovered ? 0.32 : 0.0;
-        const slideForce = (ch.targetSlide - ch.currentSlide) * 145 - ch.slideVelocity * 15.5;
+        const slideForce = (ch.targetSlide - ch.currentSlide) * 280 - ch.slideVelocity * 22;
         ch.slideVelocity += slideForce * subDt;
         ch.currentSlide += ch.slideVelocity * subDt;
 
         const targetSwivel = ch.isSelected ? 0.38 : ch.isHovered ? 0.14 : 0.0;
-        const swivelForce = (targetSwivel - ch.currentSwivel) * 120 - ch.swivelVelocity * 13.5;
+        const swivelForce = (targetSwivel - ch.currentSwivel) * 240 - ch.swivelVelocity * 20;
         ch.swivelVelocity += swivelForce * subDt;
         ch.currentSwivel += ch.swivelVelocity * subDt;
 

@@ -255,7 +255,9 @@ const SHOWCASE_SLIDES: ShowcaseSlide[] = [
 const HorizontalScrollShowcase: React.FC<{
   onEnter3D: (preset?: CameraPresetId) => void;
 }> = ({ onEnter3D }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const lastWheelTime = useRef(0);
+  const touchStartX = useRef<number | null>(null);
 
   React.useEffect(() => {
     SHOWCASE_SLIDES.forEach((s) => {
@@ -264,162 +266,303 @@ const HorizontalScrollShowcase: React.FC<{
     });
   }, []);
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start start', 'end end'],
-  });
-
-  // Track translates horizontally from 0% (slide 1) to -80% (slide 5)
-  // For 5 slides of 100vw each, 0% to -80% translates 4 viewport widths cleanly
-  const trackX = useTransform(scrollYProgress, [0, 1], ['0%', '-80%'], { clamp: true });
-
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useMotionValueEvent(scrollYProgress, 'change', (p) => {
-    const idx = Math.min(4, Math.max(0, Math.round(p * 4)));
-    setActiveIndex(idx);
-  });
-
-  const scrollToSlide = (idx: number) => {
-    if (!containerRef.current) return;
-    const top = containerRef.current.offsetTop;
-    const totalHeight = containerRef.current.offsetHeight - window.innerHeight;
-    const targetY = top + (idx / 4) * totalHeight;
-    window.scrollTo({ top: targetY, behavior: 'smooth' });
+  const goToSlide = (idx: number) => {
+    setActiveIndex(Math.max(0, Math.min(4, idx)));
   };
 
   const nextSlide = () => {
-    if (activeIndex < 4) scrollToSlide(activeIndex + 1);
+    setActiveIndex((prev) => (prev < 4 ? prev + 1 : prev));
   };
+
   const prevSlide = () => {
-    if (activeIndex > 0) scrollToSlide(activeIndex - 1);
+    setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev));
+  };
+
+  // Keyboard left/right controls
+  React.useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  // Snappy wheel listener: 1 wheel tick advances or retreats slide with instantaneous spring
+  const handleWheel = (e: React.WheelEvent) => {
+    const now = performance.now();
+    if (now - lastWheelTime.current < 260) return;
+
+    if (e.deltaY > 25) {
+      if (activeIndex < 4) {
+        lastWheelTime.current = now;
+        setActiveIndex((i) => i + 1);
+      }
+    } else if (e.deltaY < -25) {
+      if (activeIndex > 0) {
+        lastWheelTime.current = now;
+        setActiveIndex((i) => i - 1);
+      }
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) nextSlide();
+      else prevSlide();
+    }
+    touchStartX.current = null;
   };
 
   return (
-    <section ref={containerRef} className="relative h-[480vh]">
-      <div className="sticky top-0 w-full h-screen overflow-hidden bg-black select-none">
-        {/* Horizontal Track - direct left-to-right rendering, no blur, no fade */}
-        <motion.div
-          className="flex h-full w-[500vw] will-change-transform"
-          style={{ x: trackX }}
-        >
-          {SHOWCASE_SLIDES.map((slide) => (
-            <div
-              key={slide.num}
-              className="relative w-screen h-screen shrink-0 overflow-hidden"
-            >
-              {/* Full crystal-clear image */}
-              <img
-                src={slide.image}
-                alt={slide.heading}
-                className="w-full h-full object-cover select-none"
-                loading="eager"
-              />
+    <section
+      onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="relative w-full h-[88vh] sm:h-screen overflow-hidden bg-black select-none"
+    >
+      {/* Horizontal Track - Fast 0.28s spring animation */}
+      <motion.div
+        className="flex h-full w-[500vw] will-change-transform"
+        animate={{ x: `-${activeIndex * 100}vw` }}
+        transition={{
+          type: 'spring',
+          stiffness: 460,
+          damping: 38,
+          mass: 0.55,
+        }}
+      >
+        {SHOWCASE_SLIDES.map((slide) => (
+          <div
+            key={slide.num}
+            className="relative w-screen h-full shrink-0 overflow-hidden"
+          >
+            {/* Full crystal-clear image */}
+            <img
+              src={slide.image}
+              alt={slide.heading}
+              className="w-full h-full object-cover select-none"
+              loading="eager"
+            />
 
-              {/* Architectural deep contrast gradients */}
-              <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/35 to-black/30" />
-              <div className="absolute inset-y-0 left-0 w-2/5 pointer-events-none bg-gradient-to-r from-black/80 to-transparent" />
+            {/* Architectural deep contrast gradients */}
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/95 via-black/35 to-black/30" />
+            <div className="absolute inset-y-0 left-0 w-2/5 pointer-events-none bg-gradient-to-r from-black/85 to-transparent" />
 
-              {/* Slide Content Overlay */}
-              <div className="absolute bottom-24 sm:bottom-28 left-6 sm:left-14 lg:left-20 max-w-2xl z-20 pointer-events-auto">
-                <div
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md mb-3 shadow-md ${slide.badgeClass}`}
+            {/* Slide Content Overlay */}
+            <div className="absolute bottom-24 sm:bottom-28 left-6 sm:left-14 lg:left-20 max-w-2xl z-20 pointer-events-auto">
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md mb-3 shadow-md ${slide.badgeClass}`}
+              >
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-mono-tabular tracking-wider">{slide.num} / {slide.total}</span>
+                <span>·</span>
+                <span>{slide.tag}</span>
+              </div>
+
+              <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-2xl">
+                {slide.title}
+              </h1>
+
+              <p className="mt-2 text-base sm:text-xl font-semibold text-amber-200/90 drop-shadow">
+                {slide.heading}
+              </p>
+
+              <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-stone-200/90 leading-relaxed max-w-xl drop-shadow line-clamp-3">
+                {slide.description}
+              </p>
+
+              {/* Direct Action Button to 3D */}
+              <div className="mt-5 flex items-center gap-4 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => onEnter3D(slide.id)}
+                  className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r ${slide.accentBtn} text-sm font-bold transition-all shadow-xl hover:scale-[1.03] active:scale-[0.98] cursor-pointer`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  <span className="font-mono-tabular tracking-wider">{slide.num} / {slide.total}</span>
-                  <span>·</span>
-                  <span>{slide.tag}</span>
-                </div>
+                  <Play className="w-4 h-4 shrink-0 fill-current" />
+                  <span>{slide.ctaText}</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </button>
 
-                <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-2xl">
-                  {slide.title}
-                </h1>
-
-                <p className="mt-2 text-base sm:text-xl font-semibold text-amber-200/90 drop-shadow">
-                  {slide.heading}
-                </p>
-
-                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-stone-200/90 leading-relaxed max-w-xl drop-shadow line-clamp-3">
-                  {slide.description}
-                </p>
-
-                {/* Direct Action Button to 3D */}
-                <div className="mt-5 flex items-center gap-4 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => onEnter3D(slide.id)}
-                    className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r ${slide.accentBtn} text-sm font-bold transition-all shadow-xl hover:scale-[1.02] cursor-pointer`}
-                  >
-                    <Play className="w-4 h-4 shrink-0 fill-current" />
-                    <span>{slide.ctaText}</span>
-                    <ArrowRight className="w-4 h-4 shrink-0" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onEnter3D('overview')}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-black/50 hover:bg-black/70 text-white text-xs font-semibold backdrop-blur-md transition-colors cursor-pointer"
-                  >
-                    <MapIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                    <span>3D Overview</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => onEnter3D('overview')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-black/50 hover:bg-black/75 text-white text-xs font-semibold backdrop-blur-md transition-colors cursor-pointer"
+                >
+                  <MapIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <span>3D Overview</span>
+                </button>
               </div>
             </div>
-          ))}
-        </motion.div>
-
-        {/* Floating Bottom Navigator & Segmented Bar */}
-        <div className="absolute bottom-6 left-6 sm:left-14 right-6 sm:right-14 z-30 flex items-center justify-between gap-4 pointer-events-auto">
-          {/* 5 Segmented Slide Jump Pills */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-1 max-w-2xl bg-black/60 p-1.5 rounded-2xl border border-white/15 backdrop-blur-md overflow-x-auto no-scrollbar">
-            {SHOWCASE_SLIDES.map((s, i) => (
-              <button
-                key={s.num}
-                type="button"
-                onClick={() => scrollToSlide(i)}
-                className={`flex-1 min-w-[70px] sm:min-w-0 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center truncate ${
-                  activeIndex === i
-                    ? 'bg-amber-400 text-stone-950 shadow-md scale-[1.02]'
-                    : 'text-stone-300 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <span className="font-mono-tabular mr-1">{s.num}.</span>
-                <span>{s.tag.split(' ')[0]}</span>
-              </button>
-            ))}
           </div>
+        ))}
+      </motion.div>
 
-          {/* Left / Right Chevron Controls */}
-          <div className="flex items-center gap-2 shrink-0">
+      {/* Floating Bottom Navigator & Segmented Bar */}
+      <div className="absolute bottom-6 left-6 sm:left-14 right-6 sm:right-14 z-30 flex items-center justify-between gap-4 pointer-events-auto">
+        {/* 5 Segmented Slide Jump Pills */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-1 max-w-2xl bg-black/70 p-1.5 rounded-2xl border border-white/15 backdrop-blur-md overflow-x-auto no-scrollbar">
+          {SHOWCASE_SLIDES.map((s, i) => (
             <button
+              key={s.num}
               type="button"
-              onClick={prevSlide}
-              disabled={activeIndex === 0}
-              aria-label="Previous slide"
-              className="w-10 h-10 rounded-xl border border-white/20 bg-black/50 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer"
+              onClick={() => goToSlide(i)}
+              className={`flex-1 min-w-[70px] sm:min-w-0 py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-center truncate ${
+                activeIndex === i
+                  ? 'bg-amber-400 text-stone-950 shadow-md scale-[1.02]'
+                  : 'text-stone-300 hover:text-white hover:bg-white/10'
+              }`}
             >
-              <ChevronLeft className="w-5 h-5" />
+              <span className="font-mono-tabular mr-1">{s.num}.</span>
+              <span>{s.tag.split(' ')[0]}</span>
             </button>
-            <button
-              type="button"
-              onClick={nextSlide}
-              disabled={activeIndex === 4}
-              aria-label="Next slide"
-              className="w-10 h-10 rounded-xl border border-white/20 bg-black/50 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+          ))}
+        </div>
+
+        {/* Left / Right Chevron Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={prevSlide}
+            disabled={activeIndex === 0}
+            aria-label="Previous slide"
+            className="w-10 h-10 rounded-xl border border-white/20 bg-black/60 hover:bg-black/90 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer active:scale-95"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={nextSlide}
+            disabled={activeIndex === 4}
+            aria-label="Next slide"
+            className="w-10 h-10 rounded-xl border border-white/20 bg-black/60 hover:bg-black/90 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer active:scale-95"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Slide Navigation Cue */}
+      <div className="absolute top-20 right-6 sm:right-14 z-20 pointer-events-none hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 border border-white/15 text-white/80 text-xs backdrop-blur-md shadow-md">
+        <span>Click tabs or use &lt; &gt; arrows</span>
+        <ArrowRight className="w-3.5 h-3.5 text-amber-300" />
+      </div>
+    </section>
+  );
+};
+
+/* ═══ 4-STEP LUXURY HOW IT WORKS SECTION (Choose · Select · Schedule · Relax) ═══ */
+const HOW_IT_WORKS_STEPS = [
+  {
+    num: 'I',
+    title: 'Choose',
+    tagline: 'Choose Sanctuary',
+    desc: 'Pick the study hall that fits your day, from acoustic focus carrels to collaborative library tables.',
+    icon: Compass,
+  },
+  {
+    num: '2',
+    title: 'Select',
+    tagline: 'Select Exact Desk',
+    desc: 'Browse all 42 desks in real-time 3D, inspect natural sunlight angles, and choose your favorite chair.',
+    icon: Building2,
+  },
+  {
+    num: '3',
+    title: 'Schedule',
+    tagline: 'Schedule Your Pass',
+    desc: 'Pick your time slot or monthly pass, reserve securely in NPR, and receive instant booking confirmation.',
+    icon: Clock,
+  },
+  {
+    num: '4',
+    title: 'Relax',
+    tagline: 'Focus & Relax',
+    desc: 'Walk into your ready sanctuary seat with high-speed WiFi, USB-C dock, espresso, and Himalayan views.',
+    icon: Sparkles,
+  },
+];
+
+const HowItWorksSection: React.FC<{
+  onEnter3D: (preset?: CameraPresetId) => void;
+}> = ({ onEnter3D }) => {
+  return (
+    <section className="relative z-10 bg-[#090d12] border-t border-b border-amber-500/20 py-20 px-4 sm:px-8 overflow-hidden text-stone-100">
+      {/* Background warm architectural glow */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="max-w-[1240px] mx-auto relative z-10">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest mb-3">
+            <span>Simple 4-Step Process</span>
+          </div>
+          <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-wide text-amber-50 drop-shadow">
+            How Quiet Reading Space Works
+          </h2>
+          <p className="mt-3 text-sm sm:text-base text-stone-400 leading-relaxed font-light">
+            From exploring the 3D sanctuary from home to settling into your private desk in Kathmandu.
+          </p>
+        </div>
+
+        {/* 4 Cards Grid with Horizontal Line Connector */}
+        <div className="relative">
+          {/* Subtle horizontal connecting line on desktop */}
+          <div className="hidden lg:block absolute top-[58px] left-[12%] right-[12%] h-[1px] bg-gradient-to-r from-transparent via-amber-500/35 to-transparent pointer-events-none" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
+            {HOW_IT_WORKS_STEPS.map((step) => {
+              const StepIcon = step.icon;
+              return (
+                <div
+                  key={step.num}
+                  className="group relative flex flex-col items-center text-center p-7 rounded-3xl bg-gradient-to-b from-[#121720] to-[#0c1017] border border-amber-500/20 hover:border-amber-400/50 transition-all duration-300 shadow-xl hover:-translate-y-1"
+                >
+                  {/* Top 3D-styled Gold Icon Badge */}
+                  <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500/25 to-yellow-500/10 border border-amber-400/40 flex items-center justify-center mb-6 shadow-lg shadow-amber-950/40 group-hover:scale-105 transition-transform">
+                    <StepIcon className="w-8 h-8 text-amber-300" />
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-wide text-white group-hover:text-amber-200 transition-colors">
+                    {step.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="mt-3 text-xs sm:text-sm text-stone-400 leading-relaxed font-light min-h-[56px]">
+                    {step.desc}
+                  </p>
+
+                  {/* Number Circle at Bottom */}
+                  <div className="mt-8 w-9 h-9 rounded-full border border-amber-400/50 flex items-center justify-center text-amber-300 text-xs font-serif font-bold group-hover:bg-amber-400 group-hover:text-stone-950 transition-colors">
+                    {step.num}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Scroll Cue at top */}
-        {activeIndex === 0 && (
-          <div className="absolute top-20 right-6 sm:right-14 z-20 pointer-events-none hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 border border-white/15 text-white/80 text-xs backdrop-blur-md shadow-md">
-            <span>Scroll down to slide left-to-right</span>
-            <ArrowRight className="w-3.5 h-3.5 animate-pulse text-amber-300" />
-          </div>
-        )}
+        {/* CTA Bar */}
+        <div className="mt-14 text-center">
+          <button
+            type="button"
+            onClick={() => onEnter3D('entrance')}
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-stone-950 font-bold text-sm tracking-wide transition-all shadow-xl shadow-amber-950/40 hover:scale-[1.02] cursor-pointer"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            <span>Launch 3D Sanctuary & Select Your Desk</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -587,8 +730,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </header>
 
-        {/* ═══ 5-SLIDE HORIZONTAL SHOWCASE (Direct Left-to-Right Rendering) ═══ */}
+        {/* ═══ 5-SLIDE HORIZONTAL SHOWCASE (Instant, Snappy Left-to-Right Slider) ═══ */}
         <HorizontalScrollShowcase onEnter3D={onEnter3D} />
+
+        {/* ═══ 4-STEP LUXURY HOW IT WORKS SECTION (Choose · Select · Schedule · Relax) ═══ */}
+        <HowItWorksSection onEnter3D={onEnter3D} />
 
         {/* ═══ SECTION: Metrics Strip with Vibrant Color Cards ═══ */}
         <section className="relative z-10 -mt-1 bg-gradient-to-b from-[#faf8f4] to-[#f4f0e6] dark:from-[#0c1015] dark:to-[#121820]">
