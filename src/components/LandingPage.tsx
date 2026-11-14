@@ -7,6 +7,8 @@ import {
   Building2,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Coffee,
   Compass,
@@ -155,30 +157,111 @@ const LIGHTING_MODES: {
 /* ─────────────────────── Sub-Components ─────────────────────── */
 
 /* ═══════════════════════════════════════════════════════════════════
-   SCROLL-DRIVEN CINEMATIC HERO
-   Phase 1 (0.00 -> 0.12): Wide building zooms smoothly to entrance
-   Phase 2 (0.10 -> 0.23): Close-up door splits open, light pours in, then door VANISHES
-   Phase 3 (0.22 -> 1.00): Exactly 3 rooms with generous, equal screen time:
-     1. Innovation Hub (0.22 -> 0.48)
-     2. Collaborative Reading Room (0.47 -> 0.74)
-     3. Quiet Study Studio (0.72 -> 1.00)
+   5 HORIZONTAL SHOWCASE SLIDES (Left-to-Right direct scroll showcase)
+   1. Back Open View (Sanctuary Exterior & Mountain Backdrop)
+   2. Reading Room & Collaborative Library
+   3. Quiet Study Studio (Acoustic Focus Desks)
+   4. Innovation Hub (12-Seat Conference Suite)
+   5. Architectural 3D Overview Angle (Bird's-Eye Perspective)
    ═══════════════════════════════════════════════════════════════════ */
 
-const CinematicScrollHero: React.FC<{
+interface ShowcaseSlide {
+  id: CameraPresetId;
+  num: string;
+  total: string;
+  tag: string;
+  title: string;
+  heading: string;
+  description: string;
+  image: string;
+  ctaText: string;
+  badgeClass: string;
+  accentBtn: string;
+}
+
+const SHOWCASE_SLIDES: ShowcaseSlide[] = [
+  {
+    id: 'entrance',
+    num: '01',
+    total: '05',
+    tag: 'Sanctuary Exterior',
+    title: 'Quiet Reading Space',
+    heading: 'Back Open View & Himalayan Panorama',
+    description:
+      'An open-air perspective of the Quiet Reading Space sanctuary with warm-lit portico framed by the snow-capped Himalayan peaks. Scroll left-to-right to enter each study room directly.',
+    image: '/assets/scroll-frames/building-wide.jpg',
+    ctaText: 'Enter 3D Tour',
+    badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40',
+    accentBtn: 'from-amber-400 to-emerald-400 text-stone-950 hover:from-amber-300 hover:to-emerald-300',
+  },
+  {
+    id: 'reading-hall',
+    num: '02',
+    total: '05',
+    tag: 'Collaborative Library',
+    title: 'Quiet Reading Place & Library',
+    heading: 'Walnut Bookshelves & Solid Timber Study Tables',
+    description:
+      'Chevron oak flooring, tall sunlit windows, and floor-to-ceiling walnut bookcases. Features a 12-seat Calacatta marble collaborative table, study rows, and reading armchairs.',
+    image: '/assets/scroll-frames/interior-library.jpg',
+    ctaText: 'Walk Reading Room in 3D',
+    badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-400/40',
+    accentBtn: 'from-amber-400 to-amber-600 text-stone-950 hover:from-amber-300 hover:to-amber-500',
+  },
+  {
+    id: 'quiet-studio',
+    num: '03',
+    total: '05',
+    tag: 'Silent Focus Studio',
+    title: 'Quiet Study Studio',
+    heading: 'Acoustic Focus Carrels & Dedicated Desks',
+    description:
+      'Engineered for deep concentration and zero distraction. Acoustic felt dividers, individual brass task lamps, and ergonomic seating.',
+    image: '/assets/scroll-frames/interior-quiet-studio.jpg',
+    ctaText: 'Inspect Quiet Studio in 3D',
+    badgeClass: 'bg-teal-500/20 text-teal-300 border-teal-400/40',
+    accentBtn: 'from-teal-400 to-emerald-400 text-stone-950 hover:from-teal-300 hover:to-emerald-300',
+  },
+  {
+    id: 'innovation-hub',
+    num: '04',
+    total: '05',
+    tag: 'Private Ideation Suite',
+    title: 'Innovation Hub',
+    heading: '12-Seat Conference Suite & Glass Whiteboard',
+    description:
+      'Muted slate-blue walls, full-suite conference table, built-in walnut credenza, and illuminated glass whiteboard. Reserved for executive workshops and team sprints.',
+    image: '/assets/scroll-frames/interior-innovation-hub.jpg',
+    ctaText: 'Inspect Innovation Hub in 3D',
+    badgeClass: 'bg-blue-500/20 text-blue-300 border-blue-400/40',
+    accentBtn: 'from-blue-400 to-indigo-500 text-white hover:from-blue-300 hover:to-indigo-400',
+  },
+  {
+    id: 'overview',
+    num: '05',
+    total: '05',
+    tag: 'Spatial Blueprint Overview',
+    title: 'Architectural 3D Overview Angle',
+    heading: 'Bird’s-Eye Architectural Perspective & Live Map',
+    description:
+      'A complete architectural aerial view of the 204 sq.m. flat. Inspect room boundaries, active desk availability, and spatial proportions in full interactive 3D.',
+    image: '/assets/scroll-frames/overview-angle.jpg',
+    ctaText: 'Launch 3D Bird’s-Eye View',
+    badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-400/40',
+    accentBtn: 'from-purple-400 to-amber-300 text-stone-950 hover:from-purple-300 hover:to-amber-200',
+  },
+];
+
+const HorizontalScrollShowcase: React.FC<{
   onEnter3D: (preset?: CameraPresetId) => void;
 }> = ({ onEnter3D }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Preload all images on mount to ensure immediate rendering
   React.useEffect(() => {
-    THREE_ROOMS.forEach((r) => {
+    SHOWCASE_SLIDES.forEach((s) => {
       const img = new Image();
-      img.src = r.image;
+      img.src = s.image;
     });
-    const w = new Image();
-    w.src = '/assets/scroll-frames/building-wide.jpg';
-    const e = new Image();
-    e.src = '/assets/scroll-frames/building-entrance.jpg';
   }, []);
 
   const { scrollYProgress } = useScroll({
@@ -186,309 +269,157 @@ const CinematicScrollHero: React.FC<{
     offset: ['start start', 'end end'],
   });
 
-  /* ── Phase 1: Wide building approach (0 → 0.16) ── */
-  const wideScale = useTransform(scrollYProgress, [0, 0.16], [1, 1.35], { clamp: true });
-  const wideOpacity = useTransform(scrollYProgress, [0, 0.11, 0.16], [1, 1, 0], { clamp: true });
-  const wideY = useTransform(scrollYProgress, [0, 0.16], ['0%', '-4%'], { clamp: true });
+  // Track translates horizontally from 0% (slide 1) to -80% (slide 5)
+  // For 5 slides of 100vw each, 0% to -80% translates 4 viewport widths cleanly
+  const trackX = useTransform(scrollYProgress, [0, 1], ['0%', '-80%'], { clamp: true });
 
-  /* ── Phase 2: Close-up entrance appears, doors split open (0.11 → 0.28) ── */
-  const entranceOpacity = useTransform(scrollYProgress, [0.11, 0.15, 0.25, 0.28], [0, 1, 1, 0], { clamp: true });
-  const entranceScale = useTransform(scrollYProgress, [0.11, 0.18, 0.28], [1.0, 1.05, 1.3], { clamp: true });
-
-  // Double doors slide apart cleanly to left and right
-  const doorLeftX = useTransform(scrollYProgress, [0.16, 0.26], ['0%', '-105%'], { clamp: true });
-  const doorRightX = useTransform(scrollYProgress, [0.16, 0.26], ['0%', '105%'], { clamp: true });
-
-  // Subtle warm ambient doorway glow
-  const glowOpacity = useTransform(scrollYProgress, [0.16, 0.21, 0.26], [0, 0.45, 0], { clamp: true });
-
-  // Ensure door container is completely hidden from layout when done
-  const entranceDisplay = useTransform(scrollYProgress, (p) => (p >= 0.28 ? 'none' : 'block'));
-
-  /* ── Phase 3: Exactly 3 Interior Rooms (0.18 → 1.00) ── */
-  const interiorOpacity = useTransform(scrollYProgress, [0.16, 0.22], [0, 1], { clamp: true });
-
-  // Room 1: Innovation Hub (0.18 -> 0.48)
-  const room0Opacity = useTransform(scrollYProgress, [0.18, 0.24, 0.44, 0.50], [0, 1, 1, 0], { clamp: true });
-  const room0Scale = useTransform(scrollYProgress, [0.18, 0.30, 0.50], [1.08, 1, 1.03], { clamp: true });
-
-  // Room 2: Reading Room / Library (0.46 -> 0.74)
-  const room1Opacity = useTransform(scrollYProgress, [0.46, 0.52, 0.70, 0.76], [0, 1, 1, 0], { clamp: true });
-  const room1Scale = useTransform(scrollYProgress, [0.46, 0.58, 0.76], [1.06, 1, 1.03], { clamp: true });
-
-  // Room 3: Quiet Study Studio (0.72 -> 1.00) - Full visibility
-  const room2Opacity = useTransform(scrollYProgress, [0.72, 0.78, 1.00], [0, 1, 1], { clamp: true });
-  const room2Scale = useTransform(scrollYProgress, [0.72, 0.85, 1.00], [1.06, 1, 1], { clamp: true });
-
-  /* ── Text & Overlay animations ── */
-  const heroTitleOpacity = useTransform(scrollYProgress, [0, 0.08], [1, 0], { clamp: true });
-  const heroTitleY = useTransform(scrollYProgress, [0, 0.08], [0, -40], { clamp: true });
-
-  const enterTextOpacity = useTransform(scrollYProgress, [0.15, 0.19, 0.23, 0.27], [0, 1, 1, 0], { clamp: true });
-  const interiorLabelOpacity = useTransform(scrollYProgress, [0.24, 0.28], [0, 1], { clamp: true });
-
-  const ctaOpacity = useTransform(scrollYProgress, [0.82, 0.90], [0, 1], { clamp: true });
-  const ctaY = useTransform(scrollYProgress, [0.82, 0.90], [25, 0], { clamp: true });
-
-  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.04], [1, 0], { clamp: true });
-
-  /* ── Reactive Room Label State ── */
-  const [activeRoomIndex, setActiveRoomIndex] = useState(0);
-  const [phaseText, setPhaseText] = useState('Exterior');
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useMotionValueEvent(scrollYProgress, 'change', (p) => {
-    if (p < 0.14) {
-      setPhaseText('Exterior Approach');
-    } else if (p < 0.26) {
-      setPhaseText('Entrance Portico');
-    } else if (p < 0.50) {
-      setPhaseText('Interior Room 01');
-      setActiveRoomIndex(0);
-    } else if (p < 0.75) {
-      setPhaseText('Interior Room 02');
-      setActiveRoomIndex(1);
-    } else {
-      setPhaseText('Interior Room 03');
-      setActiveRoomIndex(2);
-    }
+    const idx = Math.min(4, Math.max(0, Math.round(p * 4)));
+    setActiveIndex(idx);
   });
 
-  const currentRoom = THREE_ROOMS[activeRoomIndex];
+  const scrollToSlide = (idx: number) => {
+    if (!containerRef.current) return;
+    const top = containerRef.current.offsetTop;
+    const totalHeight = containerRef.current.offsetHeight - window.innerHeight;
+    const targetY = top + (idx / 4) * totalHeight;
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+  };
+
+  const nextSlide = () => {
+    if (activeIndex < 4) scrollToSlide(activeIndex + 1);
+  };
+  const prevSlide = () => {
+    if (activeIndex > 0) scrollToSlide(activeIndex - 1);
+  };
 
   return (
-    <section
-      ref={containerRef}
-      className="relative"
-      style={{ height: '500vh' }}
-    >
-      <div className="sticky top-0 w-full h-screen overflow-hidden bg-[#090d12]">
-
-        {/* ═══ LAYER 1 (Behind doors): Exactly 3 Interior Rooms (z-index 5) ═══ */}
+    <section ref={containerRef} className="relative h-[480vh]">
+      <div className="sticky top-0 w-full h-screen overflow-hidden bg-black select-none">
+        {/* Horizontal Track - direct left-to-right rendering, no blur, no fade */}
         <motion.div
-          className="absolute inset-0 will-change-transform pointer-events-none z-[5]"
-          style={{ opacity: interiorOpacity }}
+          className="flex h-full w-[500vw] will-change-transform"
+          style={{ x: trackX }}
         >
-          {/* Room 01: Innovation Hub */}
-          <motion.div
-            className="absolute inset-0 will-change-transform"
-            style={{ opacity: room0Opacity, scale: room0Scale }}
-          >
-            <img
-              src={THREE_ROOMS[0].image}
-              alt={THREE_ROOMS[0].title}
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-
-          {/* Room 02: Collaborative Reading Room */}
-          <motion.div
-            className="absolute inset-0 will-change-transform"
-            style={{ opacity: room1Opacity, scale: room1Scale }}
-          >
-            <img
-              src={THREE_ROOMS[1].image}
-              alt={THREE_ROOMS[1].title}
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-
-          {/* Room 03: Quiet Study Studio */}
-          <motion.div
-            className="absolute inset-0 will-change-transform"
-            style={{ opacity: room2Opacity, scale: room2Scale }}
-          >
-            <img
-              src={THREE_ROOMS[2].image}
-              alt={THREE_ROOMS[2].title}
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-        </motion.div>
-
-        {/* ═══ LAYER 2: Entrance & Door split (z-index 15) ═══ */}
-        <motion.div
-          className="absolute inset-0 will-change-transform pointer-events-none z-[15]"
-          style={{
-            opacity: entranceOpacity,
-            scale: entranceScale,
-            display: entranceDisplay,
-            transformOrigin: '50% 52%',
-          }}
-        >
-          {/* Left door panel */}
-          <motion.div
-            className="absolute inset-0 will-change-transform"
-            style={{
-              x: doorLeftX,
-              clipPath: 'inset(0 50% 0 0)',
-            }}
-          >
-            <img
-              src="/assets/scroll-frames/building-entrance.jpg"
-              alt="Entrance left door"
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-
-          {/* Right door panel */}
-          <motion.div
-            className="absolute inset-0 will-change-transform"
-            style={{
-              x: doorRightX,
-              clipPath: 'inset(0 0 0 50%)',
-            }}
-          >
-            <img
-              src="/assets/scroll-frames/building-entrance.jpg"
-              alt="Entrance right door"
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-        </motion.div>
-
-        {/* ═══ LAYER 3: Wide building exterior (mountains & facade) (z-index 20 at start) ═══ */}
-        <motion.div
-          className="absolute inset-0 will-change-transform pointer-events-none z-[20]"
-          style={{
-            scale: wideScale,
-            opacity: wideOpacity,
-            y: wideY,
-            transformOrigin: '50% 55%',
-          }}
-        >
-          <img
-            src="/assets/scroll-frames/building-wide.jpg"
-            alt="Atelier Study — Building exterior with Himalayas"
-            className="w-full h-full object-cover"
-          />
-        </motion.div>
-
-        {/* ═══ TRANSITION LIGHT: Subtle golden doorway glow (z-index 25) ═══ */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none z-[25]"
-          style={{ opacity: glowOpacity }}
-        >
-          <div className="w-full h-full bg-gradient-to-r from-amber-900/30 via-amber-400/40 to-amber-900/30 mix-blend-screen" />
-        </motion.div>
-
-        {/* ═══ VIGNETTE GRADIENTS (z-index 28) ═══ */}
-        <div className="absolute inset-0 pointer-events-none z-[28] bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
-
-        {/* ═══ TEXT 1: Hero title at start ═══ */}
-        <motion.div
-          className="absolute top-24 sm:top-32 left-6 sm:left-14 z-[30] max-w-xl pointer-events-none"
-          style={{ opacity: heroTitleOpacity, y: heroTitleY }}
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold backdrop-blur-md mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Interactive 3D Study Sanctuary · Kathmandu</span>
-          </div>
-          <h1 className="font-display text-[clamp(2.2rem,5.2vw,4rem)] leading-[1.04] font-bold tracking-tight text-white drop-shadow-2xl text-balance">
-            Walk the Rooms.
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-emerald-300">
-              Reserve Your Exact Chair.
-            </span>
-          </h1>
-          <p className="mt-4 text-base sm:text-lg text-white/90 leading-relaxed max-w-[46ch] drop-shadow">
-            Scroll down to walk from the Himalayan exterior through the opening doors into 3 pristine study halls.
-          </p>
-        </motion.div>
-
-        {/* ═══ TEXT 2: "Step Inside" during door split ═══ */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[30] text-center pointer-events-none"
-          style={{ opacity: enterTextOpacity }}
-        >
-          <div className="flex flex-col items-center gap-2.5">
-            <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent rounded-full" />
-            <p className="font-display text-3xl sm:text-5xl font-extrabold text-white drop-shadow-2xl tracking-wide">
-              Step Inside
-            </p>
-            <p className="text-xs text-amber-300 font-semibold tracking-widest uppercase bg-black/40 px-3 py-1 rounded-full border border-amber-400/30 backdrop-blur-md">
-              Entering the Sanctuary
-            </p>
-            <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent rounded-full" />
-          </div>
-        </motion.div>
-
-        {/* ═══ TEXT 3: Active Room Label (Innovation Hub, Reading Room, Quiet Studio) ═══ */}
-        <motion.div
-          className="absolute bottom-24 sm:bottom-28 left-6 sm:left-14 z-[30] pointer-events-none max-w-xl"
-          style={{ opacity: interiorLabelOpacity }}
-        >
-          <div className="flex items-center gap-2.5 mb-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-xs font-bold text-white/80 tracking-widest uppercase font-mono-tabular bg-white/10 px-2 py-0.5 rounded border border-white/15">
-              {currentRoom.index}
-            </span>
-            <span className="text-xs font-semibold text-amber-300 tracking-wider uppercase">
-              {currentRoom.tag}
-            </span>
-          </div>
-
-          <h2 className="font-display text-2xl sm:text-4xl font-extrabold text-white drop-shadow-lg tracking-tight">
-            {currentRoom.title}
-          </h2>
-          <p className="mt-1 text-xs sm:text-sm text-white/85 drop-shadow line-clamp-2">
-            {currentRoom.meta}
-          </p>
-        </motion.div>
-
-        {/* ═══ Bottom Progress Line & Room indicators ═══ */}
-        <div className="absolute bottom-10 sm:bottom-12 left-6 sm:left-14 right-6 sm:right-14 z-[30] pointer-events-none">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-[4px] bg-white/15 rounded-full overflow-hidden backdrop-blur-sm">
-              <motion.div
-                className="h-full rounded-full origin-left bg-gradient-to-r from-amber-400 via-emerald-400 to-blue-400 shadow-sm"
-                style={{ scaleX: scrollYProgress }}
+          {SHOWCASE_SLIDES.map((slide) => (
+            <div
+              key={slide.num}
+              className="relative w-screen h-screen shrink-0 overflow-hidden"
+            >
+              {/* Full crystal-clear image */}
+              <img
+                src={slide.image}
+                alt={slide.heading}
+                className="w-full h-full object-cover select-none"
+                loading="eager"
               />
+
+              {/* Architectural deep contrast gradients */}
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/92 via-black/35 to-black/30" />
+              <div className="absolute inset-y-0 left-0 w-2/5 pointer-events-none bg-gradient-to-r from-black/80 to-transparent" />
+
+              {/* Slide Content Overlay */}
+              <div className="absolute bottom-24 sm:bottom-28 left-6 sm:left-14 lg:left-20 max-w-2xl z-20 pointer-events-auto">
+                <div
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md mb-3 shadow-md ${slide.badgeClass}`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span className="font-mono-tabular tracking-wider">{slide.num} / {slide.total}</span>
+                  <span>·</span>
+                  <span>{slide.tag}</span>
+                </div>
+
+                <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-2xl">
+                  {slide.title}
+                </h1>
+
+                <p className="mt-2 text-base sm:text-xl font-semibold text-amber-200/90 drop-shadow">
+                  {slide.heading}
+                </p>
+
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-stone-200/90 leading-relaxed max-w-xl drop-shadow line-clamp-3">
+                  {slide.description}
+                </p>
+
+                {/* Direct Action Button to 3D */}
+                <div className="mt-5 flex items-center gap-4 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => onEnter3D(slide.id)}
+                    className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r ${slide.accentBtn} text-sm font-bold transition-all shadow-xl hover:scale-[1.02] cursor-pointer`}
+                  >
+                    <Play className="w-4 h-4 shrink-0 fill-current" />
+                    <span>{slide.ctaText}</span>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onEnter3D('overview')}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-black/50 hover:bg-black/70 text-white text-xs font-semibold backdrop-blur-md transition-colors cursor-pointer"
+                  >
+                    <MapIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>3D Overview</span>
+                  </button>
+                </div>
+              </div>
             </div>
+          ))}
+        </motion.div>
+
+        {/* Floating Bottom Navigator & Segmented Bar */}
+        <div className="absolute bottom-6 left-6 sm:left-14 right-6 sm:right-14 z-30 flex items-center justify-between gap-4 pointer-events-auto">
+          {/* 5 Segmented Slide Jump Pills */}
+          <div className="flex items-center gap-1 sm:gap-2 flex-1 max-w-2xl bg-black/60 p-1.5 rounded-2xl border border-white/15 backdrop-blur-md overflow-x-auto no-scrollbar">
+            {SHOWCASE_SLIDES.map((s, i) => (
+              <button
+                key={s.num}
+                type="button"
+                onClick={() => scrollToSlide(i)}
+                className={`flex-1 min-w-[70px] sm:min-w-0 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center truncate ${
+                  activeIndex === i
+                    ? 'bg-amber-400 text-stone-950 shadow-md scale-[1.02]'
+                    : 'text-stone-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <span className="font-mono-tabular mr-1">{s.num}.</span>
+                <span>{s.tag.split(' ')[0]}</span>
+              </button>
+            ))}
           </div>
 
-          <div className="mt-2.5 flex items-center justify-between text-[11px] font-semibold text-white/60">
-            <span>Exterior</span>
-            <span>Door Opens</span>
-            <span className={activeRoomIndex === 0 ? 'text-blue-300 font-bold scale-105' : ''}>1. Innovation</span>
-            <span className={activeRoomIndex === 1 ? 'text-amber-300 font-bold scale-105' : ''}>2. Reading Room</span>
-            <span className={activeRoomIndex === 2 ? 'text-emerald-300 font-bold scale-105' : ''}>3. Quiet Studio</span>
+          {/* Left / Right Chevron Controls */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={prevSlide}
+              disabled={activeIndex === 0}
+              aria-label="Previous slide"
+              className="w-10 h-10 rounded-xl border border-white/20 bg-black/50 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={nextSlide}
+              disabled={activeIndex === 4}
+              aria-label="Next slide"
+              className="w-10 h-10 rounded-xl border border-white/20 bg-black/50 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center backdrop-blur-md transition-all cursor-pointer"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        {/* ═══ Scroll down cue (top of hero) ═══ */}
-        <motion.div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 pointer-events-none"
-          style={{ opacity: scrollIndicatorOpacity }}
-        >
-          <span className="text-xs text-white/60 font-medium">Scroll to explore rooms</span>
-          <ChevronDown className="w-5 h-5 text-white/70 animate-bounce" />
-        </motion.div>
-
-        {/* ═══ CTA Buttons (appears at 3rd room / end of hero) ═══ */}
-        <motion.div
-          className="absolute bottom-24 sm:bottom-28 right-6 sm:right-14 z-[30]"
-          style={{ opacity: ctaOpacity, y: ctaY }}
-        >
-          <div className="flex flex-col items-end gap-3">
-            <button
-              type="button"
-              onClick={() => onEnter3D(currentRoom.id)}
-              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-emerald-400 hover:from-amber-300 hover:to-emerald-300 text-stone-950 text-sm font-bold transition-all shadow-2xl shadow-emerald-950/40 cursor-pointer whitespace-nowrap group hover:scale-[1.02]"
-            >
-              <Play className="w-4 h-4 shrink-0 fill-current group-hover:scale-110 transition-transform" />
-              <span>Enter 3D Model</span>
-              <ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onEnter3D('overview')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/25 bg-black/50 hover:bg-black/70 text-white text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap backdrop-blur-md"
-            >
-              <MapIcon className="w-3.5 h-3.5 shrink-0 text-amber-300" />
-              <span>3D Bird's-Eye View</span>
-            </button>
+        {/* Scroll Cue at top */}
+        {activeIndex === 0 && (
+          <div className="absolute top-20 right-6 sm:right-14 z-20 pointer-events-none hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 border border-white/15 text-white/80 text-xs backdrop-blur-md shadow-md">
+            <span>Scroll down to slide left-to-right</span>
+            <ArrowRight className="w-3.5 h-3.5 animate-pulse text-amber-300" />
           </div>
-        </motion.div>
+        )}
       </div>
     </section>
   );
@@ -622,9 +553,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="flex items-center gap-3">
               <a href="#top" className="font-display text-lg sm:text-xl font-bold tracking-tight text-white whitespace-nowrap shrink-0 flex items-center gap-2">
                 <span className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-emerald-400 flex items-center justify-center text-stone-950 font-black text-xs">
-                  A
+                  Q
                 </span>
-                <span>Atelier Study</span>
+                <span>Quiet Reading Space</span>
               </a>
               <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 border border-emerald-400/30 text-emerald-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -656,8 +587,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </header>
 
-        {/* ═══ CINEMATIC SCROLL HERO (Exterior -> Door Split -> 3 Rooms -> Done) ═══ */}
-        <CinematicScrollHero onEnter3D={onEnter3D} />
+        {/* ═══ 5-SLIDE HORIZONTAL SHOWCASE (Direct Left-to-Right Rendering) ═══ */}
+        <HorizontalScrollShowcase onEnter3D={onEnter3D} />
 
         {/* ═══ SECTION: Metrics Strip with Vibrant Color Cards ═══ */}
         <section className="relative z-10 -mt-1 bg-gradient-to-b from-[#faf8f4] to-[#f4f0e6] dark:from-[#0c1015] dark:to-[#121820]">
@@ -763,7 +694,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span>Curated Spatial Gallery</span>
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900 dark:text-stone-50 text-balance">
-                  The 3 Sanctuaries rendered in full, ready to walk inside.
+                  Quiet Reading Place: The 3 sanctuaries rendered in full, ready to walk inside.
                 </h2>
               </div>
 
@@ -1081,11 +1012,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="max-w-[1240px] mx-auto px-4 sm:px-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="flex items-center gap-3">
                 <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-emerald-400 flex items-center justify-center text-stone-950 font-black text-sm">
-                  A
+                  Q
                 </span>
                 <div>
                   <h3 className="font-display text-lg font-bold text-white tracking-tight">
-                    Atelier Study Sanctuary
+                    Quiet Reading Space
                   </h3>
                   <p className="text-xs text-stone-400">
                     204 sq.m. Architectural Sanctuary · Kathmandu, Nepal
@@ -1252,7 +1183,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
                 {newsletterSubmitted && (
                   <p className="text-xs text-emerald-400 font-medium">
-                    ✓ Welcome to Atelier Study updates!
+                    ✓ Welcome to Quiet Reading Space updates!
                   </p>
                 )}
               </form>
@@ -1271,7 +1202,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="border-t border-white/10 py-6">
             <div className="max-w-[1240px] mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
               <p>
-                © 2026 Atelier Study Sanctuary. All rights reserved. First Floor, Kathmandu Valley.
+                © 2026 Quiet Reading Space. All rights reserved. First Floor, Kathmandu Valley.
               </p>
               <div className="flex flex-wrap items-center gap-5">
                 <a href="#spaces" className="hover:text-stone-300 transition-colors">

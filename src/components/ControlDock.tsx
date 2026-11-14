@@ -143,7 +143,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             </button>
           )}
           <span className="font-display text-xs sm:text-base font-semibold tracking-tight whitespace-nowrap shrink-0">
-            Atelier<span className="hidden xs:inline sm:inline"> Study</span>
+            Quiet<span className="hidden xs:inline sm:inline"> Reading Space</span>
           </span>
           <span className={`text-[11px] sm:text-xs ${mutedTextClass}`} aria-hidden="true">
             /

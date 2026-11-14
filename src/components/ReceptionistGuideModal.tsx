@@ -159,7 +159,7 @@ export const ReceptionistGuideModal: React.FC<ReceptionistGuideModalProps> = ({
                 Maya · Receptionist Guide
               </h2>
               <p className={`text-xs ${mutedText}`}>
-                “Welcome to Atelier Study! Tell me your mood and I’ll guide you right to an open seat.”
+                “Welcome to Quiet Reading Space! Tell me your mood and I’ll guide you right to an open seat.”
               </p>
             </div>
           </div>
