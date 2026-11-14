@@ -186,66 +186,65 @@ const CinematicScrollHero: React.FC<{
     offset: ['start start', 'end end'],
   });
 
-  /* ── Phase 1: Wide building approach (0 → 0.12) ── */
-  const wideScale = useTransform(scrollYProgress, [0, 0.12], [1, 1.75]);
-  const wideOpacity = useTransform(scrollYProgress, [0, 0.09, 0.12], [1, 1, 0]);
-  const wideY = useTransform(scrollYProgress, [0, 0.12], ['0%', '-10%']);
+  /* ── Phase 1: Wide building approach (0 → 0.16) ── */
+  const wideScale = useTransform(scrollYProgress, [0, 0.16], [1, 1.35], { clamp: true });
+  const wideOpacity = useTransform(scrollYProgress, [0, 0.11, 0.16], [1, 1, 0], { clamp: true });
+  const wideY = useTransform(scrollYProgress, [0, 0.16], ['0%', '-4%'], { clamp: true });
 
-  /* ── Phase 2: Close-up entrance appears, doors split open, then door DISAPPEARS completely (0.09 → 0.23) ── */
-  const entranceOpacity = useTransform(scrollYProgress, [0.09, 0.12, 0.20, 0.23], [0, 1, 1, 0]);
-  const entranceScale = useTransform(scrollYProgress, [0.09, 0.15, 0.23], [1.0, 1.15, 1.55]);
+  /* ── Phase 2: Close-up entrance appears, doors split open (0.11 → 0.28) ── */
+  const entranceOpacity = useTransform(scrollYProgress, [0.11, 0.15, 0.25, 0.28], [0, 1, 1, 0], { clamp: true });
+  const entranceScale = useTransform(scrollYProgress, [0.11, 0.18, 0.28], [1.0, 1.05, 1.3], { clamp: true });
 
-  // Double doors slide apart
-  const doorLeftX = useTransform(scrollYProgress, [0.13, 0.21], ['0%', '-115%']);
-  const doorRightX = useTransform(scrollYProgress, [0.13, 0.21], ['0%', '115%']);
+  // Double doors slide apart cleanly to left and right
+  const doorLeftX = useTransform(scrollYProgress, [0.16, 0.26], ['0%', '-105%'], { clamp: true });
+  const doorRightX = useTransform(scrollYProgress, [0.16, 0.26], ['0%', '105%'], { clamp: true });
 
-  // Warm golden glow & stepping through flash
-  const glowOpacity = useTransform(scrollYProgress, [0.13, 0.18, 0.22], [0, 0.7, 0]);
-  const flashOpacity = useTransform(scrollYProgress, [0.19, 0.22, 0.25], [0, 0.8, 0]);
+  // Subtle warm ambient doorway glow
+  const glowOpacity = useTransform(scrollYProgress, [0.16, 0.21, 0.26], [0, 0.45, 0], { clamp: true });
 
   // Ensure door container is completely hidden from layout when done
-  const entranceDisplay = useTransform(scrollYProgress, (p) => (p >= 0.24 ? 'none' : 'block'));
+  const entranceDisplay = useTransform(scrollYProgress, (p) => (p >= 0.28 ? 'none' : 'block'));
 
-  /* ── Phase 3: Exactly 3 Interior Rooms (0.22 → 1.00) ── */
-  const interiorOpacity = useTransform(scrollYProgress, [0.22, 0.25], [0, 1]);
+  /* ── Phase 3: Exactly 3 Interior Rooms (0.18 → 1.00) ── */
+  const interiorOpacity = useTransform(scrollYProgress, [0.16, 0.22], [0, 1], { clamp: true });
 
-  // Room 1: Innovation Hub (0.22 -> 0.48)
-  const room0Opacity = useTransform(scrollYProgress, [0.22, 0.26, 0.44, 0.48], [0, 1, 1, 0]);
-  const room0Scale = useTransform(scrollYProgress, [0.22, 0.35, 0.48], [1.12, 1, 1.04]);
+  // Room 1: Innovation Hub (0.18 -> 0.48)
+  const room0Opacity = useTransform(scrollYProgress, [0.18, 0.24, 0.44, 0.50], [0, 1, 1, 0], { clamp: true });
+  const room0Scale = useTransform(scrollYProgress, [0.18, 0.30, 0.50], [1.08, 1, 1.03], { clamp: true });
 
-  // Room 2: Reading Room / Library (0.46 -> 0.73)
-  const room1Opacity = useTransform(scrollYProgress, [0.46, 0.50, 0.69, 0.73], [0, 1, 1, 0]);
-  const room1Scale = useTransform(scrollYProgress, [0.46, 0.58, 0.73], [1.08, 1, 1.04]);
+  // Room 2: Reading Room / Library (0.46 -> 0.74)
+  const room1Opacity = useTransform(scrollYProgress, [0.46, 0.52, 0.70, 0.76], [0, 1, 1, 0], { clamp: true });
+  const room1Scale = useTransform(scrollYProgress, [0.46, 0.58, 0.76], [1.06, 1, 1.03], { clamp: true });
 
-  // Room 3: Quiet Study Studio (0.71 -> 1.00) - Generous full visibility!
-  const room2Opacity = useTransform(scrollYProgress, [0.71, 0.75], [0, 1]);
-  const room2Scale = useTransform(scrollYProgress, [0.71, 0.85, 1.00], [1.08, 1, 1]);
+  // Room 3: Quiet Study Studio (0.72 -> 1.00) - Full visibility
+  const room2Opacity = useTransform(scrollYProgress, [0.72, 0.78, 1.00], [0, 1, 1], { clamp: true });
+  const room2Scale = useTransform(scrollYProgress, [0.72, 0.85, 1.00], [1.06, 1, 1], { clamp: true });
 
   /* ── Text & Overlay animations ── */
-  const heroTitleOpacity = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
-  const heroTitleY = useTransform(scrollYProgress, [0, 0.08], [0, -50]);
+  const heroTitleOpacity = useTransform(scrollYProgress, [0, 0.08], [1, 0], { clamp: true });
+  const heroTitleY = useTransform(scrollYProgress, [0, 0.08], [0, -40], { clamp: true });
 
-  const enterTextOpacity = useTransform(scrollYProgress, [0.13, 0.17, 0.20, 0.23], [0, 1, 1, 0]);
-  const interiorLabelOpacity = useTransform(scrollYProgress, [0.25, 0.28], [0, 1]);
+  const enterTextOpacity = useTransform(scrollYProgress, [0.15, 0.19, 0.23, 0.27], [0, 1, 1, 0], { clamp: true });
+  const interiorLabelOpacity = useTransform(scrollYProgress, [0.24, 0.28], [0, 1], { clamp: true });
 
-  const ctaOpacity = useTransform(scrollYProgress, [0.80, 0.88], [0, 1]);
-  const ctaY = useTransform(scrollYProgress, [0.80, 0.88], [30, 0]);
+  const ctaOpacity = useTransform(scrollYProgress, [0.82, 0.90], [0, 1], { clamp: true });
+  const ctaY = useTransform(scrollYProgress, [0.82, 0.90], [25, 0], { clamp: true });
 
-  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.04], [1, 0]);
+  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.04], [1, 0], { clamp: true });
 
   /* ── Reactive Room Label State ── */
   const [activeRoomIndex, setActiveRoomIndex] = useState(0);
   const [phaseText, setPhaseText] = useState('Exterior');
 
   useMotionValueEvent(scrollYProgress, 'change', (p) => {
-    if (p < 0.12) {
+    if (p < 0.14) {
       setPhaseText('Exterior Approach');
-    } else if (p < 0.24) {
+    } else if (p < 0.26) {
       setPhaseText('Entrance Portico');
-    } else if (p < 0.48) {
+    } else if (p < 0.50) {
       setPhaseText('Interior Room 01');
       setActiveRoomIndex(0);
-    } else if (p < 0.73) {
+    } else if (p < 0.75) {
       setPhaseText('Interior Room 02');
       setActiveRoomIndex(1);
     } else {
@@ -264,26 +263,9 @@ const CinematicScrollHero: React.FC<{
     >
       <div className="sticky top-0 w-full h-screen overflow-hidden bg-[#090d12]">
 
-        {/* ═══ LAYER 1: Wide building exterior (mountains & facade) ═══ */}
+        {/* ═══ LAYER 1 (Behind doors): Exactly 3 Interior Rooms (z-index 5) ═══ */}
         <motion.div
-          className="absolute inset-0 will-change-transform pointer-events-none"
-          style={{
-            scale: wideScale,
-            opacity: wideOpacity,
-            y: wideY,
-            transformOrigin: '50% 55%',
-          }}
-        >
-          <img
-            src="/assets/scroll-frames/building-wide.jpg"
-            alt="Atelier Study — Building exterior"
-            className="w-full h-full object-cover"
-          />
-        </motion.div>
-
-        {/* ═══ LAYER 2: Exactly 3 Interior Rooms (underneath the door) ═══ */}
-        <motion.div
-          className="absolute inset-0 will-change-transform pointer-events-none"
+          className="absolute inset-0 will-change-transform pointer-events-none z-[5]"
           style={{ opacity: interiorOpacity }}
         >
           {/* Room 01: Innovation Hub */}
@@ -323,9 +305,9 @@ const CinematicScrollHero: React.FC<{
           </motion.div>
         </motion.div>
 
-        {/* ═══ LAYER 3: Entrance & Door split (Disappears completely after 0.23) ═══ */}
+        {/* ═══ LAYER 2: Entrance & Door split (z-index 15) ═══ */}
         <motion.div
-          className="absolute inset-0 will-change-transform pointer-events-none"
+          className="absolute inset-0 will-change-transform pointer-events-none z-[15]"
           style={{
             opacity: entranceOpacity,
             scale: entranceScale,
@@ -364,25 +346,37 @@ const CinematicScrollHero: React.FC<{
           </motion.div>
         </motion.div>
 
-        {/* ═══ TRANSITION LIGHT: Golden ambient glow & flash ═══ */}
+        {/* ═══ LAYER 3: Wide building exterior (mountains & facade) (z-index 20 at start) ═══ */}
         <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{ opacity: glowOpacity }}
+          className="absolute inset-0 will-change-transform pointer-events-none z-[20]"
+          style={{
+            scale: wideScale,
+            opacity: wideOpacity,
+            y: wideY,
+            transformOrigin: '50% 55%',
+          }}
         >
-          <div className="w-full h-full bg-gradient-to-r from-amber-900/40 via-amber-400/60 to-amber-900/40" />
+          <img
+            src="/assets/scroll-frames/building-wide.jpg"
+            alt="Atelier Study — Building exterior with Himalayas"
+            className="w-full h-full object-cover"
+          />
         </motion.div>
 
+        {/* ═══ TRANSITION LIGHT: Subtle golden doorway glow (z-index 25) ═══ */}
         <motion.div
-          className="absolute inset-0 bg-white pointer-events-none"
-          style={{ opacity: flashOpacity }}
-        />
+          className="absolute inset-0 pointer-events-none z-[25]"
+          style={{ opacity: glowOpacity }}
+        >
+          <div className="w-full h-full bg-gradient-to-r from-amber-900/30 via-amber-400/40 to-amber-900/30 mix-blend-screen" />
+        </motion.div>
 
-        {/* ═══ VIGNETTE GRADIENTS ═══ */}
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+        {/* ═══ VIGNETTE GRADIENTS (z-index 28) ═══ */}
+        <div className="absolute inset-0 pointer-events-none z-[28] bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
 
         {/* ═══ TEXT 1: Hero title at start ═══ */}
         <motion.div
-          className="absolute top-24 sm:top-32 left-6 sm:left-14 z-10 max-w-xl pointer-events-none"
+          className="absolute top-24 sm:top-32 left-6 sm:left-14 z-[30] max-w-xl pointer-events-none"
           style={{ opacity: heroTitleOpacity, y: heroTitleY }}
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-semibold backdrop-blur-md mb-3">
@@ -396,14 +390,14 @@ const CinematicScrollHero: React.FC<{
               Reserve Your Exact Chair.
             </span>
           </h1>
-          <p className="mt-4 text-base sm:text-lg text-white/80 leading-relaxed max-w-[46ch] drop-shadow">
+          <p className="mt-4 text-base sm:text-lg text-white/90 leading-relaxed max-w-[46ch] drop-shadow">
             Scroll down to walk from the Himalayan exterior through the opening doors into 3 pristine study halls.
           </p>
         </motion.div>
 
         {/* ═══ TEXT 2: "Step Inside" during door split ═══ */}
         <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-center pointer-events-none"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[30] text-center pointer-events-none"
           style={{ opacity: enterTextOpacity }}
         >
           <div className="flex flex-col items-center gap-2.5">
@@ -420,7 +414,7 @@ const CinematicScrollHero: React.FC<{
 
         {/* ═══ TEXT 3: Active Room Label (Innovation Hub, Reading Room, Quiet Studio) ═══ */}
         <motion.div
-          className="absolute bottom-24 sm:bottom-28 left-6 sm:left-14 z-10 pointer-events-none max-w-xl"
+          className="absolute bottom-24 sm:bottom-28 left-6 sm:left-14 z-[30] pointer-events-none max-w-xl"
           style={{ opacity: interiorLabelOpacity }}
         >
           <div className="flex items-center gap-2.5 mb-2">
@@ -442,7 +436,7 @@ const CinematicScrollHero: React.FC<{
         </motion.div>
 
         {/* ═══ Bottom Progress Line & Room indicators ═══ */}
-        <div className="absolute bottom-10 sm:bottom-12 left-6 sm:left-14 right-6 sm:right-14 z-10 pointer-events-none">
+        <div className="absolute bottom-10 sm:bottom-12 left-6 sm:left-14 right-6 sm:right-14 z-[30] pointer-events-none">
           <div className="flex items-center gap-3">
             <div className="flex-1 h-[4px] bg-white/15 rounded-full overflow-hidden backdrop-blur-sm">
               <motion.div
@@ -472,7 +466,7 @@ const CinematicScrollHero: React.FC<{
 
         {/* ═══ CTA Buttons (appears at 3rd room / end of hero) ═══ */}
         <motion.div
-          className="absolute bottom-24 sm:bottom-28 right-6 sm:right-14 z-20"
+          className="absolute bottom-24 sm:bottom-28 right-6 sm:right-14 z-[30]"
           style={{ opacity: ctaOpacity, y: ctaY }}
         >
           <div className="flex flex-col items-end gap-3">
