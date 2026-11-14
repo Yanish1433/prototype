@@ -769,7 +769,12 @@ function createWelcomePlaqueTexture(maxAnisotropy: number): THREE.CanvasTexture 
   return configureTexture(new THREE.CanvasTexture(canvas), true, maxAnisotropy, 1, 1);
 }
 
+let cachedTextureLibrary: TextureLibrary | null = null;
+
 export function createTextureLibrary(maxAnisotropy: number): TextureLibrary {
+  if (cachedTextureLibrary) {
+    return cachedTextureLibrary;
+  }
   const herringbone = createHerringboneTextures(maxAnisotropy);
   const marble = createMarbleTextures(maxAnisotropy);
   const slate = createSlateTextures(maxAnisotropy);
@@ -845,7 +850,7 @@ export function createTextureLibrary(maxAnisotropy: number): TextureLibrary {
     ...artTextures,
   ];
 
-  return {
+  const lib: TextureLibrary = {
     herringboneAlbedo: herringbone.albedo,
     herringboneBump: herringbone.bump,
     herringboneRoughness: herringbone.roughness,
@@ -871,7 +876,10 @@ export function createTextureLibrary(maxAnisotropy: number): TextureLibrary {
     lampLightCone,
     welcomePlaque,
     dispose: () => {
-      allTextures.forEach((t) => t.dispose());
+      // Keep cached textures persistent in session for instantaneous re-entry
     },
   };
+
+  cachedTextureLibrary = lib;
+  return lib;
 }

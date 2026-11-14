@@ -256,129 +256,132 @@ export default function App() {
 
   const isDay = lightingMode === 'day';
 
-  if (viewMode === 'landing') {
-    return (
-      <>
-        <LandingPage
-          lightingMode={lightingMode}
-          bookings={bookings}
-          onLightingChange={setLightingMode}
-          onEnter3D={handleEnter3D}
-          onReserveHeroDesk={handleReserveHeroDesk}
-          onOpenBookings={() => setBookingsDrawerOpen(true)}
-        />
-        {bookingsDrawerOpen && (
-          <BookingsDrawer
-            bookings={bookings}
-            lightingMode={lightingMode}
-            onClose={() => setBookingsDrawerOpen(false)}
-            onFocusChair={handleFocusChair}
-            onCancelBooking={handleCancelBooking}
-          />
-        )}
-      </>
-    );
-  }
-
   return (
-    <main
-      className={`relative w-screen h-dvh overflow-hidden select-none transition-colors duration-300 ${
-        isDay ? 'bg-[#e7e2d8]' : lightingMode === 'evening' ? 'bg-[#2c343f]' : 'bg-[#0c131d]'
-      }`}
-    >
-      <SpaceViewport
-        lightingMode={lightingMode}
-        activePreset={activePreset}
-        presetTrigger={presetTrigger}
-        selectedChairId={selectedChair?.id ?? null}
-        focusChairRequest={focusChairRequest}
-        mapNavigateRequest={mapNavigateRequest}
-        isGuideOpen={guideOpen}
-        bookings={bookings}
-        movementInputRef={movementInputRef}
-        onSelectChair={handleSelectChair}
-        onOpenGuide={() => setGuideOpen(true)}
-        onNoticeMessage={showNotice}
-        onCatalogReady={handleCatalogReady}
-        onRoomChange={setCurrentRoom}
-        onPoseChange={setPlayerPose}
-        onUserCameraOverride={handleUserCameraOverride}
-      />
+    <div className="relative min-h-screen bg-black">
+      {/* 3D Viewport - Pre-warmed on page load so entering 3D renders with ZERO delay */}
+      <main
+        className={`fixed inset-0 overflow-hidden select-none transition-opacity duration-300 ${
+          viewMode === '3d'
+            ? 'z-20 opacity-100 pointer-events-auto'
+            : 'z-0 opacity-0 pointer-events-none invisible'
+        } ${
+          isDay ? 'bg-[#e7e2d8]' : lightingMode === 'evening' ? 'bg-[#2c343f]' : 'bg-[#0c131d]'
+        }`}
+      >
+        <SpaceViewport
+          isActive={viewMode === '3d'}
+          lightingMode={lightingMode}
+          activePreset={activePreset}
+          presetTrigger={presetTrigger}
+          selectedChairId={selectedChair?.id ?? null}
+          focusChairRequest={focusChairRequest}
+          mapNavigateRequest={mapNavigateRequest}
+          isGuideOpen={guideOpen}
+          bookings={bookings}
+          movementInputRef={movementInputRef}
+          onSelectChair={handleSelectChair}
+          onOpenGuide={() => setGuideOpen(true)}
+          onNoticeMessage={showNotice}
+          onCatalogReady={handleCatalogReady}
+          onRoomChange={setCurrentRoom}
+          onPoseChange={setPlayerPose}
+          onUserCameraOverride={handleUserCameraOverride}
+        />
 
-      <ControlDock
-        lightingMode={lightingMode}
-        activePreset={activePreset}
-        currentRoom={currentRoom}
-        bookingCount={bookings.length}
-        isCollapsed={dockCollapsed}
-        isMapOpen={mapOpen}
-        isGuideOpen={guideOpen}
-        hiddenOnMobile={Boolean(selectedChair || mapOpen || guideOpen || bookingsDrawerOpen)}
-        movementInputRef={movementInputRef}
-        onLightingChange={setLightingMode}
-        onSelectPreset={handleSelectPreset}
-        onOpenBookings={() => setBookingsDrawerOpen(true)}
-        onToggleMap={() => setMapOpen((v) => !v)}
-        onToggleGuide={() => setGuideOpen((v) => !v)}
-        onToggleCollapse={() => setDockCollapsed((v) => !v)}
-        onReturnHome={handleReturnHome}
-      />
+        {viewMode === '3d' && (
+          <>
+            <ControlDock
+              lightingMode={lightingMode}
+              activePreset={activePreset}
+              currentRoom={currentRoom}
+              bookingCount={bookings.length}
+              isCollapsed={dockCollapsed}
+              isMapOpen={mapOpen}
+              isGuideOpen={guideOpen}
+              hiddenOnMobile={Boolean(selectedChair || mapOpen || guideOpen || bookingsDrawerOpen)}
+              movementInputRef={movementInputRef}
+              onLightingChange={setLightingMode}
+              onSelectPreset={handleSelectPreset}
+              onOpenBookings={() => setBookingsDrawerOpen(true)}
+              onToggleMap={() => setMapOpen((v) => !v)}
+              onToggleGuide={() => setGuideOpen((v) => !v)}
+              onToggleCollapse={() => setDockCollapsed((v) => !v)}
+              onReturnHome={handleReturnHome}
+            />
 
-      {/* Interactive 2D Floorplan Map (Corner HUD on Desktop, Overlay on Phones) */}
-      {mapOpen && (
-        <div className="fixed inset-x-2 top-14 sm:inset-auto sm:top-20 sm:left-4 z-25 flex justify-center sm:block pointer-events-auto">
-          <MiniMap2D
+            {/* Interactive 2D Floorplan Map (Corner HUD on Desktop, Overlay on Phones) */}
+            {mapOpen && (
+              <div className="fixed inset-x-2 top-14 sm:inset-auto sm:top-20 sm:left-4 z-25 flex justify-center sm:block pointer-events-auto">
+                <MiniMap2D
+                  lightingMode={lightingMode}
+                  playerPose={playerPose}
+                  chairCatalog={chairCatalog}
+                  bookings={bookings}
+                  selectedChairId={selectedChair?.id ?? null}
+                  isExpanded={mapExpanded}
+                  onToggleExpand={() => setMapExpanded((v) => !v)}
+                  onCloseMobile={() => setMapOpen(false)}
+                  onNavigatePoint={handleNavigatePoint}
+                  onSelectChair={(ch) => {
+                    setSelectedChair(ch);
+                  }}
+                />
+              </div>
+            )}
+
+            {noticeMsg && (
+              <div
+                role="status"
+                className={`fixed top-14 sm:top-18 left-1/2 -translate-x-1/2 z-30 max-w-[92vw] sm:max-w-md px-4 py-2.5 rounded-xl border shadow-lg text-xs font-medium text-center transition-opacity ${
+                  isDay
+                    ? 'bg-[#faf8f4]/95 border-stone-300 text-stone-900'
+                    : 'bg-stone-900/95 border-amber-500/35 text-amber-50'
+                }`}
+              >
+                {noticeMsg}
+              </div>
+            )}
+
+            {selectedChair && (
+              <BookingOverlay
+                chair={selectedChair}
+                existingBooking={activeChairBooking}
+                lightingMode={lightingMode}
+                onClose={() => setSelectedChair(null)}
+                onSubmitBooking={handleSubmitBooking}
+                onCancelBooking={handleCancelBooking}
+              />
+            )}
+
+            {guideOpen && (
+              <ReceptionistGuideModal
+                lightingMode={lightingMode}
+                chairCatalog={chairCatalog}
+                bookings={bookings}
+                onClose={() => setGuideOpen(false)}
+                onWalkToSpot={handleNavigatePoint}
+                onPickChairToBook={(ch) => handleFocusChair(ch.id)}
+              />
+            )}
+          </>
+        )}
+      </main>
+
+      {/* Landing Page (Visible when viewMode === 'landing') */}
+      {viewMode === 'landing' && (
+        <div className="relative z-10">
+          <LandingPage
             lightingMode={lightingMode}
-            playerPose={playerPose}
-            chairCatalog={chairCatalog}
             bookings={bookings}
-            selectedChairId={selectedChair?.id ?? null}
-            isExpanded={mapExpanded}
-            onToggleExpand={() => setMapExpanded((v) => !v)}
-            onCloseMobile={() => setMapOpen(false)}
-            onNavigatePoint={handleNavigatePoint}
-            onSelectChair={(ch) => {
-              setSelectedChair(ch);
-            }}
+            onLightingChange={setLightingMode}
+            onEnter3D={handleEnter3D}
+            onReserveHeroDesk={handleReserveHeroDesk}
+            onOpenBookings={() => setBookingsDrawerOpen(true)}
           />
         </div>
       )}
 
-      {noticeMsg && (
-        <div
-          role="status"
-          className={`fixed top-14 sm:top-18 left-1/2 -translate-x-1/2 z-30 max-w-[92vw] sm:max-w-md px-4 py-2.5 rounded-xl border shadow-lg text-xs font-medium text-center transition-opacity ${
-            isDay
-              ? 'bg-[#faf8f4]/95 border-stone-300 text-stone-900'
-              : 'bg-stone-900/95 border-amber-500/35 text-amber-50'
-          }`}
-        >
-          {noticeMsg}
-        </div>
-      )}
-
-      {selectedChair && (
-        <BookingOverlay
-          chair={selectedChair}
-          existingBooking={activeChairBooking}
-          lightingMode={lightingMode}
-          onClose={() => setSelectedChair(null)}
-          onSubmitBooking={handleSubmitBooking}
-          onCancelBooking={handleCancelBooking}
-        />
-      )}
-
-      {guideOpen && (
-        <ReceptionistGuideModal
-          lightingMode={lightingMode}
-          chairCatalog={chairCatalog}
-          bookings={bookings}
-          onClose={() => setGuideOpen(false)}
-          onWalkToSpot={handleNavigatePoint}
-          onPickChairToBook={(ch) => handleFocusChair(ch.id)}
-        />
-      )}
-
+      {/* Bookings Drawer */}
       {bookingsDrawerOpen && (
         <BookingsDrawer
           bookings={bookings}
@@ -388,7 +391,7 @@ export default function App() {
           onCancelBooking={handleCancelBooking}
         />
       )}
-    </main>
+    </div>
   );
 }
 

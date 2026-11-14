@@ -19,6 +19,7 @@ import {
 } from '../types/space';
 
 interface SpaceViewportProps {
+  isActive?: boolean;
   lightingMode: LightingMode;
   activePreset: CameraPresetId;
   presetTrigger: number;
@@ -129,6 +130,7 @@ type PickResult =
   | null;
 
 export const SpaceViewport: React.FC<SpaceViewportProps> = ({
+  isActive = true,
   lightingMode,
   activePreset,
   presetTrigger,
@@ -151,6 +153,16 @@ export const SpaceViewport: React.FC<SpaceViewportProps> = ({
   const [contextLost, setContextLost] = useState(false);
   const [loading, setLoading] = useState(true);
   const [webglError, setWebglError] = useState<string | null>(null);
+
+  const isActiveRef = useRef<boolean>(isActive);
+  isActiveRef.current = isActive;
+  const resumeLoopRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (isActive && resumeLoopRef.current) {
+      resumeLoopRef.current();
+    }
+  }, [isActive]);
 
   const lightingModeRef = useRef<LightingMode>(lightingMode);
   lightingModeRef.current = lightingMode;
@@ -631,8 +643,24 @@ export const SpaceViewport: React.FC<SpaceViewportProps> = ({
     let disposed = false;
     let initialFrameRendered = false;
 
+    function resumeLoop() {
+      if (disposed) return;
+      onResize();
+      if (frameId === 0) {
+        clock.start();
+        frameId = requestAnimationFrame(tick);
+      }
+    }
+    resumeLoopRef.current = resumeLoop;
+
     function tick() {
       if (disposed) return;
+
+      // When inactive and initial pre-warm frame is rendered, pause loop to save 100% CPU/GPU
+      if (!isActiveRef.current && initialFrameRendered) {
+        frameId = 0;
+        return;
+      }
       const rawDt = clock.getDelta();
       const dt = Math.min(rawDt, 0.08);
       const elapsed = clock.elapsedTime;
@@ -837,6 +865,7 @@ export const SpaceViewport: React.FC<SpaceViewportProps> = ({
 
     return () => {
       disposed = true;
+      resumeLoopRef.current = null;
       cancelAnimationFrame(frameId);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
