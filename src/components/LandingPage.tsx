@@ -256,8 +256,12 @@ const HorizontalScrollShowcase: React.FC<{
   onEnter3D: (preset?: CameraPresetId) => void;
 }> = ({ onEnter3D }) => {
   const [activeIndex, setActiveIndex] = useState(0);
-  const lastWheelTime = useRef(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
+
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   React.useEffect(() => {
     SHOWCASE_SLIDES.forEach((s) => {
@@ -290,41 +294,84 @@ const HorizontalScrollShowcase: React.FC<{
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
-  // Snappy wheel listener: 1 wheel tick advances or retreats slide with instantaneous spring
-  const handleWheel = (e: React.WheelEvent) => {
-    const now = performance.now();
-    if (now - lastWheelTime.current < 260) return;
+  // Native non-passive wheel listener: intercept scrolling at the top of the page
+  // to advance smoothly through each room (Sanctuary -> Collaborative -> Quiet -> Private -> Overview)
+  // without immediately jumping to the next section!
+  React.useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
 
-    if (e.deltaY > 25) {
-      if (activeIndex < 4) {
-        lastWheelTime.current = now;
-        setActiveIndex((i) => i + 1);
+    let wheelAccumulator = 0;
+    let wheelCooldown = false;
+
+    const onWheel = (e: WheelEvent) => {
+      // If the page has already scrolled down past the hero, allow normal page scrolling
+      if (window.scrollY > 15) return;
+
+      const idx = activeIndexRef.current;
+
+      // Scrolling DOWN
+      if (e.deltaY > 0) {
+        if (idx < 4) {
+          // Prevent the browser from instantly jumping down past the hero
+          e.preventDefault();
+          wheelAccumulator += e.deltaY;
+
+          if (!wheelCooldown && Math.abs(wheelAccumulator) >= 20) {
+            wheelCooldown = true;
+            wheelAccumulator = 0;
+            setActiveIndex((prev) => Math.min(4, prev + 1));
+            setTimeout(() => {
+              wheelCooldown = false;
+            }, 320);
+          }
+        }
+        // When on Slide 5 (3D Overview), do NOT preventDefault:
+        // continuing to scroll down naturally scrolls to the next section!
       }
-    } else if (e.deltaY < -25) {
-      if (activeIndex > 0) {
-        lastWheelTime.current = now;
-        setActiveIndex((i) => i - 1);
+      // Scrolling UP
+      else if (e.deltaY < 0) {
+        if (idx > 0 && window.scrollY <= 10) {
+          e.preventDefault();
+          wheelAccumulator += e.deltaY;
+
+          if (!wheelCooldown && Math.abs(wheelAccumulator) >= 20) {
+            wheelCooldown = true;
+            wheelAccumulator = 0;
+            setActiveIndex((prev) => Math.max(0, prev - 1));
+            setTimeout(() => {
+              wheelCooldown = false;
+            }, 320);
+          }
+        }
       }
-    }
-  };
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 40) {
-      if (diff > 0) nextSlide();
+    const diffX = touchStartX.current - e.changedTouches[0].clientX;
+    const diffY = touchStartY.current !== null ? touchStartY.current - e.changedTouches[0].clientY : 0;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      if (diffX > 0) nextSlide();
       else prevSlide();
     }
     touchStartX.current = null;
+    touchStartY.current = null;
   };
 
   return (
     <section
-      onWheel={handleWheel}
+      ref={sectionRef}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       className="relative w-full h-[88vh] sm:h-screen overflow-hidden bg-black select-none"
